@@ -3,7 +3,7 @@ import dotenv from "dotenv";
 import cors from "cors";
 
 //all route files
-import { projectRoutes, activityRoutes, analyticsRoutes, assetsRoutes, clientsRoutes } from "./routes";
+import { projectRoutes, activityRoutes, analyticsRoutes, assetsRoutes, clientsRoutes, usersRoutes } from "./routes";
 
 dotenv.config();
 
@@ -30,6 +30,7 @@ app.use("/api/activities", activityRoutes);
 app.use("/api/analytics", analyticsRoutes);
 app.use("/api/assets", assetsRoutes);
 app.use("/api/clients", clientsRoutes);
+app.use("/api/users", usersRoutes);
 
 //global error handler
 app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {

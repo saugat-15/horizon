@@ -1,8 +1,20 @@
 import express from "express";
 import prisma from "../lib/prisma";
-import { Prisma } from "@prisma/client";
+import { Prisma, ProjectStatus } from "@prisma/client";
+
 
 const router = express.Router();
+
+const STATUS_LABEL: Record<ProjectStatus, string> = {
+    IN_PROGRESS: "In progress",
+    IN_REVIEW: "In review",
+    APPROVED: "Approved",
+    ARCHIVED: "Archived",
+};
+
+export function formatProjectStatus(status: ProjectStatus): string {
+    return STATUS_LABEL[status];
+}
 
 router.get("/", async (_, res, next) => {
     try {
@@ -94,6 +106,37 @@ router.post("/", async (req, res, next) => {
     }
 })
 
+router.post("/:id/members", async (req, res, next) => {
+    const { id: projectId } = req.params;
+    const { userId } = req.body as { userId?: string };
+    if (!userId) {
+        return res.status(400).json({ error: "userId is required" });
+    }
+    try {
+        const project = await prisma.project.findUnique({ where: { id: projectId } });
+        if (!project) {
+            return res.status(404).json({ error: "Project not found" });
+        }
+        const user = await prisma.user.findUnique({ where: { id: userId } });
+        if (!user) {
+            return res.status(404).json({ error: "User not found" });
+        }
+        await prisma.projectUser.create({
+            data: {
+                projectId,
+                userId,
+            },
+        });
+        res.status(201).json({ projectId, userId });
+    } catch (error) {
+        if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+            return res.status(409).json({ error: "User is already assigned to this project" });
+        }
+        console.error(error);
+        next(error);
+    }
+});
+
 //patch
 
 router.patch("/:id", async (req, res, next) => {
@@ -112,7 +155,7 @@ router.patch("/:id", async (req, res, next) => {
             }),
             prisma.activityLog.create({
                 data: {
-                    action: `Status changed to ${status}`,
+                    action: `Status changed to ${formatProjectStatus(status)}`,
                     projectId: id,
                     userId,
                 }
