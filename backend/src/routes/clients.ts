@@ -3,7 +3,7 @@ import prisma from "../lib/prisma";
 
 const router = express.Router();
 
-router.get("/", async (req, res, next) => {
+router.get("/", async (_, res, next) => {
     try {
         const clients = await prisma.client.findMany({
             include: {
