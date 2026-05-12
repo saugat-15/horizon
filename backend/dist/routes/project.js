@@ -1,48 +1,37 @@
-import express from "express";
-import prisma from "../lib/prisma";
-import { Prisma, ProjectStatus } from "@prisma/client";
-
-
-const router = express.Router();
-
-const STATUS_LABEL: Record<ProjectStatus, string> = {
-    IN_PROGRESS: "In progress",
-    IN_REVIEW: "In review",
-    APPROVED: "Approved",
-    ARCHIVED: "Archived",
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
 };
-
-export function formatProjectStatus(status: ProjectStatus): string {
-    return STATUS_LABEL[status];
-}
-
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = __importDefault(require("express"));
+const prisma_1 = __importDefault(require("../lib/prisma"));
+const client_1 = require("@prisma/client");
+const router = express_1.default.Router();
 router.get("/", async (_, res, next) => {
     try {
-        const projects = await prisma.project.findMany(
-            {
-                include: {
-                    client: true,
-                    _count: {
-                        select: { assets: true, projectUsers: true }
-                    }
-                },
-                orderBy: { updatedAt: 'desc' }
-            }
-        );
-        res.json(projects)
-    } catch (error) {
+        const projects = await prisma_1.default.project.findMany({
+            include: {
+                client: true,
+                _count: {
+                    select: { assets: true, projectUsers: true }
+                }
+            },
+            orderBy: { updatedAt: 'desc' }
+        });
+        res.json(projects);
+    }
+    catch (error) {
         console.error(error);
-        next(error)
+        next(error);
     }
 });
-
 router.get("/:id", async (req, res, next) => {
-    const { id } = req.params
+    const { id } = req.params;
     if (!id) {
-        return res.status(400).json({ error: "id is required" })
+        return res.status(400).json({ error: "id is required" });
     }
     try {
-        const project = await prisma.project.findUnique({
+        const project = await prisma_1.default.project.findUnique({
             where: { id },
             include: {
                 client: true,
@@ -70,24 +59,24 @@ router.get("/:id", async (req, res, next) => {
                     //can add skip if pagination is required to view all activity logs
                 }
             }
-        })
+        });
         if (!project) {
-            return res.status(404).json({ error: "Project not found" })
+            return res.status(404).json({ error: "Project not found" });
         }
-        res.status(200).json(project)
-    } catch (error) {
-        console.error(error);
-        next(error)
+        res.status(200).json(project);
     }
-})
-
+    catch (error) {
+        console.error(error);
+        next(error);
+    }
+});
 router.post("/", async (req, res, next) => {
-    const { name, clientId, description, status } = req.body
+    const { name, clientId, description, status } = req.body;
     if (!name || !clientId) {
-        return res.status(400).json({ error: "name and clientId are required" })
+        return res.status(400).json({ error: "name and clientId are required" });
     }
     try {
-        const createProjectResponse = await prisma.project.create({
+        const createProjectResponse = await prisma_1.default.project.create({
             data: {
                 name,
                 description,
@@ -98,76 +87,74 @@ router.post("/", async (req, res, next) => {
                     },
                 },
             }
-        })
-        res.status(201).json(createProjectResponse)
-    } catch (error) {
-        console.error(error);
-        next(error)
+        });
+        res.status(201).json(createProjectResponse);
     }
-})
-
+    catch (error) {
+        console.error(error);
+        next(error);
+    }
+});
 router.post("/:id/members", async (req, res, next) => {
     const { id: projectId } = req.params;
-    const { userId } = req.body as { userId?: string };
+    const { userId } = req.body;
     if (!userId) {
         return res.status(400).json({ error: "userId is required" });
     }
     try {
-        const project = await prisma.project.findUnique({ where: { id: projectId } });
+        const project = await prisma_1.default.project.findUnique({ where: { id: projectId } });
         if (!project) {
             return res.status(404).json({ error: "Project not found" });
         }
-        const user = await prisma.user.findUnique({ where: { id: userId } });
+        const user = await prisma_1.default.user.findUnique({ where: { id: userId } });
         if (!user) {
             return res.status(404).json({ error: "User not found" });
         }
-        await prisma.projectUser.create({
+        await prisma_1.default.projectUser.create({
             data: {
                 projectId,
                 userId,
             },
         });
         res.status(201).json({ projectId, userId });
-    } catch (error) {
-        if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+    }
+    catch (error) {
+        if (error instanceof client_1.Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
             return res.status(409).json({ error: "User is already assigned to this project" });
         }
         console.error(error);
         next(error);
     }
 });
-
 //patch
-
 router.patch("/:id", async (req, res, next) => {
     const { status, userId } = req.body;
     const { id } = req.params;
-    const validStatuses = ['IN_PROGRESS', 'IN_REVIEW', 'APPROVED', 'ARCHIVED']
+    const validStatuses = ['IN_PROGRESS', 'IN_REVIEW', 'APPROVED', 'ARCHIVED'];
     if (status && !validStatuses.includes(status)) {
-        return res.status(400).json({ error: "Invalid status value" })
+        return res.status(400).json({ error: "Invalid status value" });
     }
     try {
-        const [updatedProject] = await prisma.$transaction([
-
-            prisma.project.update({
+        const [updatedProject] = await prisma_1.default.$transaction([
+            prisma_1.default.project.update({
                 where: { id },
                 data: { status },
             }),
-            prisma.activityLog.create({
+            prisma_1.default.activityLog.create({
                 data: {
-                    action: `Status changed to ${formatProjectStatus(status)}`,
+                    action: `Status changed to ${status}`,
                     projectId: id,
                     userId,
                 }
             })
         ]);
         res.status(200).json(updatedProject);
-    } catch (error: any) {
-        if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
-            return res.status(404).json({ error: "Project not found" })
+    }
+    catch (error) {
+        if (error instanceof client_1.Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
+            return res.status(404).json({ error: "Project not found" });
         }
         next(error);
     }
 });
-
-export default router;
+exports.default = router;
