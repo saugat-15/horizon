@@ -27,25 +27,25 @@ Built as a demonstration of full-stack engineering capability across a domain I 
 
 ### Frontend
 
-- [ ] Vite + React + TypeScript scaffold
-- [ ] React Router setup
-- [ ] shadcn + Tailwind configured
-- [ ] Dashboard page — project cards, analytics summary, activity feed
-- [ ] Project detail page — assets, team members, activity timeline, status update
-- [ ] API integration — all pages connected to backend
-- [ ] Responsive layout
+- [x] Vite + React + TypeScript scaffold
+- [x] React Router setup
+- [x] shadcn + Tailwind configured
+- [x] Dashboard page — project cards, analytics summary, activity feed
+- [x] Project detail page — assets, team members, activity timeline, status update
+- [x] API integration — all pages connected to backend
+- [x] Responsive layout
 
 ### Infrastructure
 
 - [x] PostgreSQL in Docker
 - [x] Express API in Docker
-- [ ] Frontend in Docker
-- [ ] Full stack `docker compose up` working
+- [x] Frontend in Docker
+- [x] Full stack `docker compose up` working
 - [ ] Azure Blob Storage connected
 
 ### Polish
 
-- [ ] README completed
+- [x] README completed
 - [ ] Architecture decisions documented
 - [ ] "What I'd build next" section written
 - [ ] Walkthrough narrative rehearsed
