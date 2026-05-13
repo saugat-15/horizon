@@ -1,6 +1,6 @@
 # Horizon
 
-A project and asset management platform built to mirror the core workflows of RCX 360 Manage — the visual decision making platform by Red Design Group.
+A project and asset management platform — the visual decision making platform.
 
 Built as a demonstration of full-stack engineering capability across a domain I spent time understanding before writing a line of code.
 
@@ -42,13 +42,12 @@ Built as a demonstration of full-stack engineering capability across a domain I 
 - [x] Frontend in Docker
 - [x] Full stack `docker compose up` working
 - [ ] Azure Blob Storage connected
+- [ ] SAS token direct upload to Azure Blob for large 360° renders
 
 ### Polish
 
 - [x] README completed
 - [ ] Architecture decisions documented
-- [ ] "What I'd build next" section written
-- [ ] Walkthrough narrative rehearsed
 
 ---
 
@@ -82,7 +81,7 @@ Frontend runs on `http://localhost:3000`
 
 ## Schema Overview
 
-Five core models that mirror the RCX 360 Manage domain:
+Five core models:
 
 - **Client** — design firm clients (Australia Post, Brickworks etc)
 - **Project** — engagements with a client, status tracked through lifecycle
@@ -103,7 +102,6 @@ Key decisions:
 
 - [ ] Row Level Security (RLS) at the database level for true multi-tenant data isolation
 - [ ] JWT authentication with user sessions
-- [ ] SAS token direct upload to Azure Blob for large 360° renders
 - [ ] Pagination on activity logs and asset grids
 - [ ] GitHub Actions CI/CD pipeline deploying to Azure App Service on merge to main
 - [ ] Per-project analytics chart — activity over time using raw SQL aggregation
