@@ -2,15 +2,21 @@ import { Role } from "@prisma/client";
 import prisma from "./prisma";
 import type { ProjectStatus } from "@prisma/client";
 
+/** Stable UUIDs for seed clients (deterministic across runs). */
+const CLIENT_ID_NORTHSHORE = "c0000000-0000-4000-8000-000000000001";
+const CLIENT_ID_BENNETT = "c0000000-0000-4000-8000-000000000002";
+const CLIENT_ID_FRAME = "c0000000-0000-4000-8000-000000000003";
+const CLIENT_ID_CIVICWORKS = "c0000000-0000-4000-8000-000000000004";
+
 const projects: Array<{
-    clientId: number;
+    clientId: string;
     name: string;
     description: string;
     status: ProjectStatus;
     memberEmails: string[];
 }> = [
         {
-            clientId: 1,
+            clientId: CLIENT_ID_NORTHSHORE,
             name: "Pacific Row — marketing stills & dusk variants",
             description:
                 "Hero exterior and interior CGI for sales gallery and MLS; coordinated RCX lighting passes with dusk look-development variants and broker-ready crops.",
@@ -22,18 +28,18 @@ const projects: Array<{
             ],
         },
         {
-            clientId: 2,
+            clientId: CLIENT_ID_BENNETT,
             name: "South Quad STEM Hub — board review package",
             description:
                 "Study-model views and diagram overlays for trustee review; RCX packaging annotations and revision lane for campus planning feedback.",
             status: "IN_REVIEW",
             memberEmails: [
                 "darren.mitchell@acmecreative.io",
-                "saugat.thapa@acmecreative.io",
+                "saugat.giri@acmecreative.io",
             ],
         },
         {
-            clientId: 3,
+            clientId: CLIENT_ID_FRAME,
             name: "Harborline Tower — competition imagery",
             description:
                 "Finalist visualization set: aerial context, podium lobby sequence, amenity deck; approved by Frame for submission close-out.",
@@ -41,11 +47,11 @@ const projects: Array<{
             memberEmails: [
                 "jon.rivers@acmecreative.io",
                 "brendan.okonkwo@acmecreative.io",
-                "saugat.thapa@acmecreative.io",
+                "saugat.giri@acmecreative.io",
             ],
         },
         {
-            clientId: 4,
+            clientId: CLIENT_ID_CIVICWORKS,
             name: "Central Corridor LRT — phase 1 visualization archive",
             description:
                 "Early fly-through and station hero stills for public consultation; phase concluded — RCX deliverables archived for agency records.",
@@ -72,16 +78,16 @@ const users = [
     },
     {
         name: "Saugat",
-        email: "saugat.thapa@acmecreative.io",
+        email: "saugat.giri@acmecreative.io",
         role: "MEMBER",
     },
 ];
 
 const clients = [
-    { id: "1", name: "Northshore Capital Partners", logoUrl: null as string | null },
-    { id: "2", name: "Bennett University — Campus Planning", logoUrl: null },
-    { id: "3", name: "Frame Architecture LLP", logoUrl: null },
-    { id: "4", name: "CivicWorks Transit Authority", logoUrl: null },
+    { id: CLIENT_ID_NORTHSHORE, name: "Northshore Capital Partners", logoUrl: null as string | null },
+    { id: CLIENT_ID_BENNETT, name: "Bennett University — Campus Planning", logoUrl: null },
+    { id: CLIENT_ID_FRAME, name: "Frame Architecture LLP", logoUrl: null },
+    { id: CLIENT_ID_CIVICWORKS, name: "CivicWorks Transit Authority", logoUrl: null },
 ];
 
 export const seedClients = async () => {
@@ -135,7 +141,7 @@ export const seedProjects = async () => {
                 status: project.status,
                 client: {
                     connect: {
-                        id: project.clientId.toString(),
+                        id: project.clientId,
                     },
                 },
             },
