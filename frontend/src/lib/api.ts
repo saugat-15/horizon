@@ -3,6 +3,8 @@ import axios, { type AxiosError } from "axios";
 import type {
   ActivityLog,
   AnalyticsResponse,
+  Asset,
+  AssetType,
   Client,
   CreateProjectPayload,
   ProjectDetail,
@@ -86,5 +88,28 @@ export async function updateProjectStatus(
     status,
     userId,
   });
+  return data;
+}
+
+export async function requestAssetSasToken(payload: {
+  projectId: string;
+  fileName: string;
+  fileType: AssetType;
+}): Promise<{ sasUrl: string; blobName: string }> {
+  const { data } = await api.post<{ sasUrl: string; blobName: string }>(
+    "/api/assets/sas-token",
+    payload,
+  );
+  return data;
+}
+
+export async function createAssetRecord(payload: {
+  projectId: string;
+  uploadedBy: string;
+  name: string;
+  fileType: AssetType;
+  blobName: string;
+}): Promise<Asset> {
+  const { data } = await api.post<Asset>("/api/assets", payload);
   return data;
 }

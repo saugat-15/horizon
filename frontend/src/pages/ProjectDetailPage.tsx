@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -32,7 +32,9 @@ import { useProject } from "@/hooks/useProject";
 import { useUsers } from "@/hooks/useUsers";
 import {
   addProjectMember,
+  createAssetRecord,
   extractErrorMessage,
+  requestAssetSasToken,
   updateProjectStatus,
 } from "@/lib/api";
 import { formatActivityTime } from "@/lib/format-date";
@@ -54,11 +56,21 @@ import type {
   User,
 } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { ArrowLeft, ExternalLink, MoreHorizontal } from "lucide-react";
+import { ArrowLeft, ExternalLink, MoreHorizontal, Upload } from "lucide-react";
+
+/** Until auth exists, uploads are attributed to this workspace user (see seed). */
+const UPLOAD_ACTOR_EMAIL = "saugat.giri@acmecreative.io";
 
 function parseProjectStatus(value: unknown): ProjectStatus | null {
   const parsed = projectStatusSchema.safeParse(value);
   return parsed.success ? parsed.data : null;
+}
+
+function assetTypeFromFileName(fileName: string): AssetType | null {
+  const ext = fileName.toLowerCase().split(".").pop();
+  if (ext === "jpg" || ext === "jpeg" || ext === "png") return "IMAGE";
+  if (ext === "pdf") return "DOCUMENT";
+  return null;
 }
 
 function assetTypeLabel(t: AssetType): string {
@@ -213,22 +225,31 @@ function ProjectStatusPanel({
 
 function ProjectAssetCard({ asset }: { asset: Asset }) {
   const menuLabel = `Open menu for ${asset.name}`;
+  const openLabel = `Open ${asset.name} in new tab`;
 
   return (
     <Card className="overflow-hidden pt-0">
       <div className="relative aspect-4/3 bg-muted">
-        {asset.fileType === "IMAGE" ? (
-          <img
-            src={asset.fileUrl}
-            alt={`Preview: ${asset.name}`}
-            className="size-full object-cover"
-          />
-        ) : (
-          <div className="flex size-full items-center justify-center text-xs text-muted-foreground">
-            {assetTypeLabel(asset.fileType)}
-          </div>
-        )}
-        <div className="absolute top-2 right-2">
+        <a
+          href={asset.fileUrl}
+          target="_blank"
+          rel="noreferrer"
+          className="absolute inset-0 z-0 flex flex-col no-underline outline-none hover:opacity-[0.98] focus-visible:ring-2 focus-visible:ring-ring"
+          aria-label={openLabel}
+        >
+          {asset.fileType === "IMAGE" ? (
+            <img
+              src={asset.fileUrl}
+              alt={`Preview: ${asset.name}`}
+              className="pointer-events-none size-full object-cover"
+            />
+          ) : (
+            <div className="pointer-events-none flex size-full items-center justify-center text-xs text-muted-foreground">
+              {assetTypeLabel(asset.fileType)}
+            </div>
+          )}
+        </a>
+        <div className="absolute top-2 right-2 z-10">
           <DropdownMenu>
             <DropdownMenuTrigger
               render={
@@ -262,7 +283,16 @@ function ProjectAssetCard({ asset }: { asset: Asset }) {
       </div>
       <CardHeader className="pb-2">
         <div className="flex items-start justify-between gap-2">
-          <CardTitle className="line-clamp-2 text-sm leading-snug">{asset.name}</CardTitle>
+          <CardTitle className="line-clamp-2 text-sm leading-snug">
+            <a
+              href={asset.fileUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="text-foreground underline-offset-4 hover:underline"
+            >
+              {asset.name}
+            </a>
+          </CardTitle>
           <Badge variant="outline" className="shrink-0 text-[10px]">
             {assetTypeLabel(asset.fileType)}
           </Badge>
@@ -277,15 +307,134 @@ function ProjectAssetCard({ asset }: { asset: Asset }) {
   );
 }
 
-function ProjectAssetsSection({ assets }: { assets: Asset[] }) {
+function ProjectAssetsSection({
+  projectId,
+  assets,
+  users,
+  refetch,
+}: {
+  projectId: string;
+  assets: Asset[];
+  users: UsersQuerySnapshot;
+  refetch: () => void;
+}) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+
+  const uploadActorId = useMemo(
+    () => users.data?.find((u) => u.email === UPLOAD_ACTOR_EMAIL)?.id,
+    [users.data],
+  );
+
+  const openFilePicker = () => {
+    fileInputRef.current?.click();
+  };
+
+  const onFileSelected = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const generateSASandUpload = async () => {
+      if (!uploadActorId) {
+        setUploadError(`No user found with email ${UPLOAD_ACTOR_EMAIL}.`);
+        return;
+      }
+      const fileType = assetTypeFromFileName(file.name);
+      if (!fileType) {
+        setUploadError("Only .jpg, .jpeg, .png, and .pdf files are supported.");
+        return;
+      }
+
+      setUploading(true);
+      setUploadError(null);
+      try {
+        const { sasUrl, blobName } = await requestAssetSasToken({
+          projectId,
+          fileName: file.name,
+          fileType,
+        });
+        const putResponse = await fetch(sasUrl, {
+          method: "PUT",
+          headers: {
+            "x-ms-blob-type": "BlockBlob",
+            ...(file.type ? { "Content-Type": file.type } : {}),
+          },
+          body: file,
+        });
+        if (!putResponse.ok) {
+          const detail = await putResponse.text().catch(() => "");
+          throw new Error(
+            detail.trim() || `Upload to storage failed (${putResponse.status})`,
+          );
+        }
+        await createAssetRecord({
+          projectId,
+          uploadedBy: uploadActorId,
+          name: file.name,
+          fileType,
+          blobName,
+        });
+        refetch();
+      } catch (err: unknown) {
+        setUploadError(extractErrorMessage(err));
+      } finally {
+        setUploading(false);
+        event.target.value = "";
+      }
+    };
+
+    void generateSASandUpload();
+  };
+
+  const uploadDisabled =
+    uploading || users.loading || Boolean(users.error) || !uploadActorId;
+
   return (
     <section aria-label="Assets" className="space-y-4">
-      <div className="flex items-end justify-between gap-2">
+      <div className="flex flex-wrap items-end justify-between gap-3">
         <h2 className="font-heading text-sm font-medium tracking-wide text-muted-foreground uppercase">
           Assets
         </h2>
-        <span className="text-xs text-muted-foreground tabular-nums">{assets.length} total</span>
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-xs text-muted-foreground tabular-nums">{assets.length} total</span>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".jpg,.jpeg,.png,.pdf,image/jpeg,image/png,application/pdf"
+            className="sr-only"
+            aria-hidden
+            tabIndex={-1}
+            onChange={onFileSelected}
+          />
+          <Button
+            type="button"
+            size="sm"
+            variant="secondary"
+            disabled={uploadDisabled}
+            onClick={openFilePicker}
+            className="gap-1.5"
+          >
+            <Upload className="size-3.5" aria-hidden />
+            {uploading ? "Uploading..." : "Upload asset"}
+          </Button>
+        </div>
       </div>
+      {users.error ? (
+        <p className="text-xs text-destructive" role="alert">
+          Could not load users: {users.error}
+        </p>
+      ) : null}
+      {!users.loading && !users.error && !uploadActorId ? (
+        <p className="text-xs text-muted-foreground">
+          Uploads are disabled until a user with email {UPLOAD_ACTOR_EMAIL} exists in the workspace.
+        </p>
+      ) : null}
+      {uploadError ? (
+        <p className="text-xs text-destructive" role="alert">
+          {uploadError}
+        </p>
+      ) : null}
       {assets.length === 0 ? (
         <Card>
           <CardHeader>
@@ -559,7 +708,12 @@ export function ProjectDetailPage() {
 
       {data ? (
         <>
-          <ProjectAssetsSection assets={data.assets} />
+          <ProjectAssetsSection
+            projectId={id}
+            assets={data.assets}
+            users={users}
+            refetch={refetch}
+          />
           <div className="grid gap-8 lg:grid-cols-2">
             <ProjectTeamSection
               projectId={id}

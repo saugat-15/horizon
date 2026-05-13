@@ -29,7 +29,7 @@ const projects: Array<{
             status: "IN_REVIEW",
             memberEmails: [
                 "darren.mitchell@acmecreative.io",
-                "saugat.thapa@acmecreative.io",
+                "saugat.giri@acmecreative.io",
             ],
         },
         {
@@ -41,7 +41,7 @@ const projects: Array<{
             memberEmails: [
                 "jon.rivers@acmecreative.io",
                 "brendan.okonkwo@acmecreative.io",
-                "saugat.thapa@acmecreative.io",
+                "saugat.giri@acmecreative.io",
             ],
         },
         {
@@ -72,7 +72,7 @@ const users = [
     },
     {
         name: "Saugat",
-        email: "saugat.thapa@acmecreative.io",
+        email: "saugat.giri@acmecreative.io",
         role: "MEMBER",
     },
 ];

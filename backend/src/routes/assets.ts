@@ -47,15 +47,28 @@ router.post("/sas-token", async (req, res, next) => {
 
 router.post("/", async (req, res, next) => {
     try {
-        const { projectId, uploadedBy, name, fileUrl, fileType } = req.body;
-        if (!projectId || !uploadedBy || !name || !fileUrl) throw new Error("Required fields missing.");
+        const { projectId, uploadedBy, name, fileType, blobName } = req.body
+        if (!projectId || !uploadedBy || !name || !blobName) throw new Error("Required fields missing.")
+
+        const accountName = process.env.AZURE_STORAGE_ACCOUNT_NAME!
+        const accountKey = process.env.AZURE_STORAGE_ACCOUNT_KEY!
+        const containerName = process.env.AZURE_STORAGE_CONTAINER!
+        const sharedKeyCredential = new StorageSharedKeyCredential(accountName, accountKey)
+
+        const sasToken = generateBlobSASQueryParameters({
+            containerName,
+            blobName,
+            permissions: BlobSASPermissions.parse("r"), // read only
+            expiresOn: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 1 year
+        }, sharedKeyCredential).toString();
+        const sasUrl = `https://${accountName}.blob.core.windows.net/${containerName}/${blobName}?${sasToken}`
 
         const [asset] = await prisma.$transaction([
             prisma.asset.create({
                 data: {
                     name,
                     uploadedById: uploadedBy,
-                    fileUrl,
+                    fileUrl: sasUrl,
                     projectId,
                     fileType
                 }
