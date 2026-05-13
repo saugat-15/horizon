@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -218,7 +219,11 @@ function ProjectStatusPanel({
           Add someone to the team below—status changes are logged against a team member.
         </p>
       ) : null}
-      {statusError ? <p className="text-xs text-destructive">{statusError}</p> : null}
+      {statusError ? (
+        <Alert variant="destructive" className="py-2">
+          <AlertDescription className="text-xs">{statusError}</AlertDescription>
+        </Alert>
+      ) : null}
     </div>
   );
 }
@@ -393,11 +398,14 @@ function ProjectAssetsSection({
   return (
     <section aria-label="Assets" className="space-y-4">
       <div className="flex flex-wrap items-end justify-between gap-3">
-        <h2 className="font-heading text-sm font-medium tracking-wide text-muted-foreground uppercase">
-          Assets
-        </h2>
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-xs text-muted-foreground tabular-nums">{assets.length} total</span>
+
+          <h2 className="font-heading text-sm font-medium tracking-wide text-muted-foreground uppercase">
+            Assets
+          </h2>
+          <Badge variant="outline" className="text-xs">{assets.length} total</Badge>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
           <input
             ref={fileInputRef}
             type="file"
@@ -410,7 +418,7 @@ function ProjectAssetsSection({
           <Button
             type="button"
             size="sm"
-            variant="secondary"
+            variant="default"
             disabled={uploadDisabled}
             onClick={openFilePicker}
             className="gap-1.5"
@@ -564,7 +572,9 @@ function ProjectTeamSection({
             Add team member
           </p>
           {team.users.error ? (
-            <p className="text-xs text-destructive">{team.users.error}</p>
+            <Alert variant="destructive" className="py-2">
+              <AlertDescription className="text-xs">{team.users.error}</AlertDescription>
+            </Alert>
           ) : null}
           {team.users.loading ? (
             <Skeleton className="h-9 w-full" />
@@ -609,9 +619,9 @@ function ProjectTeamSection({
             </div>
           )}
           {team.addError ? (
-            <p className="text-xs text-destructive" role="alert">
-              {team.addError}
-            </p>
+            <Alert variant="destructive" className="py-2">
+              <AlertDescription className="text-xs">{team.addError}</AlertDescription>
+            </Alert>
           ) : null}
         </CardFooter>
       </Card>
