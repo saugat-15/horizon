@@ -26,7 +26,7 @@ function extractErrorMessage(err: unknown): string {
   if (axios.isAxiosError(err)) {
     const ax = err as AxiosError<{ error?: string; message?: string }>;
     const fromBody =
-      ax.response?.data?.error ?? ax.response?.data?.message ?? ax.message;
+      ax.response?.data?.message ?? ax.response?.data?.error ?? ax.message;
     if (fromBody) return fromBody;
   }
   if (err instanceof Error) return err.message;
